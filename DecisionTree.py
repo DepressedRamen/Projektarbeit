@@ -1,4 +1,6 @@
 import numpy
+from collections import Counter
+import Node #Node class for the decision tree
 #Decision Tree with all necessary functions for a decision tree 
 
 class DecisionTree:
@@ -7,8 +9,37 @@ class DecisionTree:
         self.root = root #root node of the tree
         self.max_depth = max_depth #maximum depth of the tree 
         
+    def fit(self, X, y): 
+        """Fit the decision tree to the dataset"""
+        self.root = self._contrstuct_tree(X, y)
+        
     #region Private Methods
-    def _split(self, y, X): 
+    def _contrstuct_tree(self, X, y, depth=0):
+        """Construct the tree recursively"""
+        number_of_labels = len(numpy.unique(y))
+        
+        #region check if the current node is a leaf node
+        #by determing if there is only one label left
+        if number_of_labels == 1:
+            return Node(value = y[0])
+        #by determing the maximum depth is reached
+        if depth == self.max_depth:
+            label_counter = Counter(y)
+            most_common_label = label_counter.most_common(1)[0][0]
+            return Node(value = most_common_label)
+        #endregion
+        
+        #split the dataset
+        left_indices, right_indices, split_value, feature_index = self._split(X, y)
+        
+        #create left and right child
+        left_child = self._contrstuct_tree(X[left_indices], y[left_indices], depth + 1)
+        right_child = self._contrstuct_tree(X[right_indices], y[right_indices], depth + 1)
+        
+        #create the current node
+        return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index)
+    
+    def _split(self, X, y): 
         """Return the best split of a dataset"""
         best_information_gain = None
         best_split_value = None 
@@ -22,7 +53,7 @@ class DecisionTree:
             split_values = numpy.unique(X_column)
             for value in split_values: 
                 #calculate the information gain of the current split
-                information_gains.append(self._information_gain(y, X_column, value))
+                information_gains.append(self._information_gain(X_column, y,  value))
                 
             #determine the best split for the current feature
             best_gain_for_feature = max(information_gains)
@@ -39,7 +70,7 @@ class DecisionTree:
         return left_indices, right_indices, best_split_value, best_feature_index
             
     
-    def _information_gain(self, y, X_column, split_value):
+    def _information_gain(self, X_column, y, split_value):
         """Return the information gain of a split"""
         parent_entropy = self._entropy(y)
         
