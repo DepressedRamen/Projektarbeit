@@ -1,6 +1,6 @@
 import numpy
 from collections import Counter
-import Node #Node class for the decision tree
+from Node import Node #Node class for the decision tree
 #Decision Tree with all necessary functions for a decision tree 
 
 class DecisionTree:
@@ -110,8 +110,8 @@ class DecisionTree:
         """Return the prediction for a single input"""
         node = self.root
         #traverse tree until we reach a leaf
-        while not node.isLeaf():
-            if single_input[node.feature_count] < node.split_value:
+        while not node.is_leaf():
+            if single_input[node.feature_index] < node.split_value:
                 node = node.left_child
             else:
                 node = node.right_child
