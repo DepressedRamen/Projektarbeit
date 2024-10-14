@@ -1,13 +1,15 @@
 import numpy
+import numbers
 from collections import Counter
 from Node import Node #Node class for the decision tree
 #Decision Tree with all necessary functions for a decision tree 
 
 class DecisionTree:
-    def __init__(self, root=None, max_depth=13):
+    def __init__(self, root=None, max_depth=13, intervalls=5):
         """Constructor of the decision tree"""
         self.root = root #root node of the tree
         self.max_depth = max_depth #maximum depth of the tree 
+        self.intervals = intervalls #number of intervalls for numerical features
         
     def fit(self, X, y): 
         """Fit the decision tree to the dataset"""
@@ -49,8 +51,20 @@ class DecisionTree:
         for feature_index in range(X.shape[1]):
             information_gains = []
             X_column = X[:,feature_index]
-            #determine all possible split values for the current feature 
-            split_values = numpy.unique(X_column)
+            
+            if isinstance(X_column[0], numbers.Number) and len(numpy.unique(X_column)) > self.intervals:
+                """Feature is numerical and has more than unique values than the specified amount of intervals"""
+                #determine the minimum and maximum value of the current feature
+                min_value = min(X_column)
+                max_value = max(X_column)
+                
+                #determine the split values for the current feature
+                split_values = numpy.linspace(min_value, max_value, self.intervals+1) #determine the split values including the minimum and maximum
+                split_values = split_values[1:-1] #remove the minimum and maximum from the split_values   
+            else: 
+                """Feature is categorical or has less unique numerical values than the specified amount of intervals"""
+                #determine all possible split values for the current feature 
+                split_values = numpy.unique(X_column)
             for value in split_values: 
                 #calculate the information gain of the current split
                 information_gains.append(self._information_gain(X_column, y,  value))
