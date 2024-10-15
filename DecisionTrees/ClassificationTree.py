@@ -1,21 +1,10 @@
+from DecisionTrees.DecisionTree import DecisionTree
+from collections import Counter
 import numpy
 import numbers
-from collections import Counter
-from Node import Node #Node class for the decision tree
-#Decision Tree with all necessary functions for a decision tree 
+from Node import Node
 
-class DecisionTree:
-    def __init__(self, root=None, max_depth=13, intervalls=5):
-        """Constructor of the decision tree"""
-        self.root = root #root node of the tree
-        self.max_depth = max_depth #maximum depth of the tree 
-        self.intervals = intervalls #number of intervalls for numerical features
-        
-    def fit(self, X, y): 
-        """Fit the decision tree to the dataset"""
-        self.root = self._contrstuct_tree(X, y)
-        
-    #region Private Methods
+class ClassificationTree(DecisionTree):
     def _contrstuct_tree(self, X, y, depth=0):
         """Construct the tree recursively"""
         number_of_labels = len(numpy.unique(y))
@@ -24,8 +13,8 @@ class DecisionTree:
         #by determing if there is only one label left
         if number_of_labels == 1:
             return Node(value = y[0])
-        #by determing the maximum depth is reached
-        if depth == self.max_depth:
+        #by determing if the maximum depth is reached or the minimum amount of samples is reached
+        if (depth == self.max_depth) or (len(y) <= self.min_samples_split):
             label_counter = Counter(y)
             most_common_label = label_counter.most_common(1)[0][0]
             return Node(value = most_common_label)
@@ -82,7 +71,7 @@ class DecisionTree:
         right_indices = [index for index,element in enumerate(X_column_best_feature) if element >= best_split_value] 
         
         return left_indices, right_indices, best_split_value, best_feature_index
-            
+    
     
     def _information_gain(self, X_column, y, split_value):
         """Return the information gain of a split"""
@@ -106,8 +95,7 @@ class DecisionTree:
         
         #return the information gain
         return parent_entropy - children_entropy
-        
-    
+            
     def _entropy(self, y):
         """Return the entropy of a dataset"""
         relative_occurences = self._relative_occurences(y)
@@ -118,23 +106,6 @@ class DecisionTree:
         ocurrences = numpy.bincount(y)
         # return the relative occurences of each manifestation of y 
         return ocurrences / len(y)
-        
+
+
     
-    def _predict(self, single_input):
-        """Return the prediction for a single input"""
-        node = self.root
-        #traverse tree until we reach a leaf
-        while not node.is_leaf():
-            if single_input[node.feature_index] < node.split_value:
-                node = node.left_child
-            else:
-                node = node.right_child
-        #return the value of the leaf as a prediction
-        return node.value
-    #endregion
-        
-    #region Public Methods
-    def predict(self, X):
-        """Return the predictions for the dataset X"""
-        return [self._predict(single_input) for single_input in X]
-    #endregion
