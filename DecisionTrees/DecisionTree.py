@@ -1,6 +1,4 @@
-import numpy
 from abc import ABC, abstractmethod
-from Node import Node #Node class for the decision tree
 #Decision Tree with all necessary functions for a decision tree 
 
 class DecisionTree(ABC):
@@ -45,4 +43,10 @@ class DecisionTree(ABC):
     def fit(self, X, y): 
         """Fit the decision tree to the dataset"""
         self.root = self._contrstuct_tree(X, y)
+        
+    def _determine_indecies(self, X_column, split_value):
+        """Return the indices of the left and right child"""
+        left_indices = [index for index,element in enumerate(X_column) if element < split_value]
+        right_indices = [index for index,element in enumerate(X_column) if element >= split_value]
+        return left_indices, right_indices
     #endregion
