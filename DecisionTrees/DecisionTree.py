@@ -22,7 +22,7 @@ class DecisionTree(ABC):
     #endregion
 
     #region Private Methods
-    def _predict(self, single_input):
+    def _predict_single_input(self, single_input):
         """Return the prediction for a single input"""
         node = self.root
         #traverse tree until we reach a leaf
@@ -38,7 +38,7 @@ class DecisionTree(ABC):
     #region Public Methods
     def predict(self, X):
         """Return the predictions for the dataset X"""
-        return [self._predict(single_input) for single_input in X]
+        return [self._predict_single_input(single_input) for single_input in X]
     
     def fit(self, X, y): 
         """Fit the decision tree to the dataset"""
