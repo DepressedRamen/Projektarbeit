@@ -3,6 +3,8 @@ from collections import Counter
 import numpy
 import numbers
 from Node import Node #import the Node class
+import random
+from math import sqrt, trunc
 
 class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
     #region Implement Abstract Methods
@@ -23,8 +25,11 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
             #return a leaf node with the most common label as value
             return Node(value = most_common_label)
         
+        #pick a random subset of features if there is a specified amount of features
+        feature_indeces = random.sample(range(X.shape[1]), trunc(sqrt(X.shape[1])))
+        
         #split the dataset
-        left_indices, right_indices, split_value, feature_index = self._split(X, y)
+        left_indices, right_indices, split_value, feature_index = self._split(X, y, feature_indeces)
         
         #create left and right child
         left_child = self._contrstuct_tree(X[left_indices], y[left_indices], depth + 1)
@@ -33,7 +38,7 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
         #create the current node
         return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index)
     
-    def _split(self, X, y): 
+    def _split(self, X, y, feature_indices): 
         """Return the best split of a dataset"""
         #initialize variables for the best split
         best_information_gain = None
@@ -41,7 +46,7 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
         best_feature_index = None
         
         #iterate over all features 
-        for feature_index in range(X.shape[1]):
+        for feature_index in feature_indices:
             #initialize a list to store the information gains of the current feature
             information_gains = []
             #get all values of the current feature
