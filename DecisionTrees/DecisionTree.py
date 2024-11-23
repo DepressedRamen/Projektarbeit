@@ -7,7 +7,7 @@ class DecisionTree(ABC):
         """Constructor of the decision tree"""
         self.root = root #root node of the tree
         self.max_depth = max_depth #maximum depth of the tree 
-        self.intervals = intervals #number of intervalls for numerical features
+        self.intervals = intervals #number of intervals for numerical features
         self.min_samples_split = min_samples_split #minimum number of samples for a leaf node
       
     #region Abstract Methods  
@@ -22,8 +22,10 @@ class DecisionTree(ABC):
         pass
     #endregion
 
-    #region Private Methods
-    def _predict_single_input(self, single_input):
+
+    #region Public Methods
+    def predict_single_input(self, single_input):
+
         """Return the prediction for a single input"""
         node = self.root
         #traverse tree until we reach a leaf
@@ -40,12 +42,12 @@ class DecisionTree(ABC):
                 node = node.right_child
         #return the value of the leaf as a prediction
         return node.value
-    #endregion
         
-    #region Public Methods
+
     def predict(self, X):
         """Return the predictions for the dataset X"""
-        return [self._predict_single_input(single_input) for single_input in X]
+        return [self.predict_single_input(single_input) for single_input in X]
+
     
     def fit(self, X, y): 
         """Fit the decision tree to the dataset"""

@@ -2,6 +2,8 @@ from DecisionTrees.DecisionTree import DecisionTree #import the DecisionTree cla
 from Node import Node #import the Node class
 import numbers
 import numpy 
+import random 
+from math import sqrt, trunc
 
 class RegressionTree(DecisionTree): #inherit from the DecisionTree class
     def _contrstuct_tree(self, X, y, depth=0):
@@ -21,8 +23,11 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
             #return the leaf node by taking the first label as value as the dataset is pure
             return Node(value = y[0])
         
+        #pick a random subset of features if there is a specified amount of features
+        feature_indeces = random.sample(range(X.shape[1]), trunc(sqrt(X.shape[1])))
+        
         #split the dataset
-        left_indices, right_indices, split_value, feature_index = self._split(X, y)
+        left_indices, right_indices, split_value, feature_index = self._split(X, y, feature_indeces)
         
         #create left and right child
         left_child = self._contrstuct_tree(X[left_indices], y[left_indices], depth + 1)
@@ -31,7 +36,7 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         #create the current node
         return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index)
     
-    def _split(self, X, y): 
+    def _split(self, X, y, feature_indices): 
         """Return the best split of a dataset"""
         #initialize variables for the best split
         best_mean_squared_error = None
@@ -39,7 +44,7 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         best_feature_index = None
         
         #iterate over all features 
-        for feature_index in range(X.shape[1]):
+        for feature_index in feature_indices:
             #initialize a list to store the information gains of the current feature
             mean_squared_errors = []
             #get all values of the current feature
