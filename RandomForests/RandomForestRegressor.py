@@ -3,7 +3,7 @@ from DecisionTrees.RegressionTree import RegressionTree
 import numpy
 
 
-class RegressionRandomForest(RandomForest):
+class RandomForestRegressor(RandomForest):
     #region Implemented Abstract Methods
     def fit(self, X, y):
         """Fit the random forest to the dataset"""
@@ -11,7 +11,7 @@ class RegressionRandomForest(RandomForest):
         for _ in range(self.trees_amount):
             X_bootstrap, y_bootstrap = self._create_bootstrap_sample(X, y) #create a bootstrap sample 
             #create a new tree
-            tree = RegressionTree(max_depth=self.max_depth, intervals=self.intervalls, min_samples_split=self.min_samples_split)
+            tree = RegressionTree(max_depth=self.max_depth, intervals=self.intervals, min_samples_split=self.min_samples_split)
             tree.fit(X_bootstrap, y_bootstrap) #fit the tree to the bootstrap sample
             self.forest.append(tree) #add the tree to the forest
     

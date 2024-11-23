@@ -2,11 +2,11 @@ from abc import ABC, abstractmethod
 #Decision Tree with all necessary functions for a decision tree 
 
 class DecisionTree(ABC):
-    def __init__(self, root=None, max_depth=13, intervalls=5, min_samples_split=20):
+    def __init__(self, root=None, max_depth=13, intervals=5, min_samples_split=20):
         """Constructor of the decision tree"""
         self.root = root #root node of the tree
         self.max_depth = max_depth #maximum depth of the tree 
-        self.intervals = intervalls #number of intervalls for numerical features
+        self.intervals = intervals #number of intervals for numerical features
         self.min_samples_split = min_samples_split #minimum number of samples for a leaf node
       
     #region Abstract Methods  

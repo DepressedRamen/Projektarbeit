@@ -3,7 +3,7 @@ from DecisionTrees.ClassificationTree import ClassificationTree
 from collections import Counter
 import random
 
-class ClassificationRandomForest(RandomForest): 
+class RandomForestClassifier(RandomForest): 
     #region Implemented Abstract Methods
     def fit(self, X, y):
         """Fit the random forest to the dataset"""
@@ -11,7 +11,7 @@ class ClassificationRandomForest(RandomForest):
         for _ in range(self.trees_amount):
             X_bootstrap, y_bootstrap = self._create_bootstrap_sample(X, y) #create a bootstrap sample 
             #create a new tree
-            tree = ClassificationTree(max_depth=self.max_depth, intervals=self.intervalls, min_samples_split=self.min_samples_split, features_amount=self.features_amount)
+            tree = ClassificationTree(max_depth=self.max_depth, intervals=self.intervals, min_samples_split=self.min_samples_split)
             tree.fit(X_bootstrap, y_bootstrap) #fit the tree to the bootstrap sample
             self.forest.append(tree) #add the tree to the forest
     
