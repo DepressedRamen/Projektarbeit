@@ -3,8 +3,6 @@ from collections import Counter
 import numpy
 import numbers
 from Node import Node #import the Node class
-import random
-from math import sqrt, trunc
 
 class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
     #region Implement Abstract Methods
@@ -25,8 +23,8 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
             #return a leaf node with the most common label as value
             return Node(value = most_common_label)
         
-        #pick a random subset of features if there is a specified amount of features
-        feature_indeces = random.sample(range(X.shape[1]), trunc(sqrt(X.shape[1])))
+        #determine the features that are used for the split
+        feature_indeces = self._feature_sample(X.shape[1])
         
         #split the dataset
         left_indices, right_indices, split_value, feature_index = self._split(X, y, feature_indeces)

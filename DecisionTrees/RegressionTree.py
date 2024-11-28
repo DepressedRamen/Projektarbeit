@@ -2,8 +2,6 @@ from DecisionTrees.DecisionTree import DecisionTree #import the DecisionTree cla
 from Node import Node #import the Node class
 import numbers
 import numpy 
-import random 
-from math import sqrt, trunc
 
 class RegressionTree(DecisionTree): #inherit from the DecisionTree class
     def _contrstuct_tree(self, X, y, depth=0):
@@ -23,8 +21,8 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
             #return the leaf node by taking the first label as value as the dataset is pure
             return Node(value = y[0])
         
-        #pick a random subset of features if there is a specified amount of features
-        feature_indeces = random.sample(range(X.shape[1]), trunc(sqrt(X.shape[1])))
+        #determine the features that are used for the split
+        feature_indeces = self._feature_sample(X.shape[1])
         
         #split the dataset
         left_indices, right_indices, split_value, feature_index = self._split(X, y, feature_indeces)
