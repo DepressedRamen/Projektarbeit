@@ -1,10 +1,19 @@
 from DecisionTrees.DecisionTree import DecisionTree #import the DecisionTree class
 from collections import Counter
 import numpy
-import numbers
+from numbers import Number
 from Node import Node #import the Node class
 
 class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
+    def __init__(self, root=None, max_depth=13, intervals=5, min_samples_split=20, random_feature_sampling=False, soft_voting=False):
+        """Constructor of the ClassificationTree"""
+        super().__init__(root=root, 
+                         max_depth=max_depth, 
+                         intervals=intervals, 
+                         min_samples_split=min_samples_split, 
+                         random_feature_sampling=random_feature_sampling) #call the constructor of the DecisionTree class
+        self.soft_voting = soft_voting #if true the tree uses soft voting for the predictions
+    
     #region Implement Abstract Methods
     def _contrstuct_tree(self, X, y, depth=0):
         """Construct the tree recursively"""
@@ -12,16 +21,9 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
         number_of_labels = len(numpy.unique(y))
         
         #check if the current node is a leaf node
-        #by determing if there is only one unique label left
-        if number_of_labels == 1:
-            return Node(value = y[0])
-        #by determing if the maximum depth is reached or the minimum amount of samples is reached
-        if (depth == self.max_depth) or (len(y) <= self.min_samples_split):
-            #determine the most common label in the dataset
-            label_counter = Counter(y)
-            most_common_label = label_counter.most_common(1)[0][0]
-            #return a leaf node with the most common label as value
-            return Node(value = most_common_label)
+        #by determing if the maximum depth is reached or the minimum amount of samples is reached or the node is pure
+        if (depth == self.max_depth) or (len(y) <= self.min_samples_split) or number_of_labels == 1:
+            return self._create_leaf(y, number_of_labels)
         
         #determine the features that are used for the split
         feature_indeces = self._feature_sample(X.shape[1])
@@ -51,7 +53,7 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
             X_column = X[:,feature_index]
             
             #Feature is numerical and has more  unique values than the specified amount of intervals
-            if isinstance(X_column[0], numbers.Number) and len(numpy.unique(X_column)) > self.intervals:
+            if isinstance(X_column[0], Number) and len(numpy.unique(X_column)) > self.intervals:
                 #determine the minimum and maximum value of the current feature
                 min_value = min(X_column)
                 max_value = max(X_column)
@@ -82,14 +84,44 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
         
         #return the indices of the left and right child as well as the best split value and the best feature index
         return left_indices, right_indices, best_split_value, best_feature_index
+    
+    def predict_single_input(self, single_input):
+        """Return the prediction for a single input"""
+        node = self.root
+        #traverse tree until we reach a leaf
+        while not node.is_leaf():
+            feature_value = single_input[node.feature_index]
+            #check if the feature value is numerical or categorical
+            #if it is numerical we compare the value to the split value and go left if it is smaller than the node value 
+            #if it is categorical we go left if the value is equal to the node value
+            if (isinstance(feature_value, Number) and feature_value < node.split_value) or \
+               (not isinstance(feature_value, Number) and feature_value == node.split_value): 
+                node = node.left_child
+            #otherwise we go to the right child of the node 
+            else:
+                node = node.right_child
+        
+        #check if the tree uses soft voting
+        if self.soft_voting:
+            #return the label with the highest probability
+            return max(node.value, key=node.value.get)
+        else: 
+            #return the value of the leaf as a prediction
+            return node.value
     #endregion    
     
+    #region Private Methods
     def _information_gain(self, X_column, y, split_value):
         """Return the information gain of a split"""
         parent_entropy = self._entropy(y)
         
         #split the dataset into two parts according to the split value 
         left_indices, right_indices = self._determine_indecies(X_column, split_value)
+        
+        #check if the split is valid
+        if len(left_indices) <1 or len(right_indices) <1:
+            print("Invalid split")
+            return float('-inf')
         
         #determine amount of datapoints of the left and right child as well as the combined amount of datapoints
         left_datapoints_amount = len(left_indices)
@@ -116,6 +148,53 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
         ocurrences = numpy.bincount(y)
         # return the relative occurences of each manifestation of y 
         return ocurrences / len(y)
-
-
     
+    def _create_leaf(self, y, number_of_labels):
+        """Return a leaf node"""
+        #check if the tree uses soft voting
+        if self.soft_voting:
+            #determine the probabilities of each label with the help of the counter class
+            label_amounts = Counter(y) 
+            values_array = numpy.array(list(label_amounts.values())) 
+            key_array = numpy.array(list(label_amounts.keys()))  
+            relative_occurences_array = values_array / len(y) 
+            probabilities = dict(zip(key_array, relative_occurences_array)) 
+            
+            #return a leaf node with the probabilities of each label
+            return Node(value = probabilities) 
+        #check if there is only one unique label left
+        elif number_of_labels == 1:
+                return Node(value = y[0])
+        #else determine the most common label
+        else: 
+            label_counter = Counter(y)
+            most_common_label = label_counter.most_common(1)[0][0]
+            return Node(value = most_common_label)
+    #endregion
+    
+    #region Public Methods
+    def predict_proba_single_input(self, single_input):
+        """Return the probabilities for a single input"""
+        node = self.root
+        #traverse tree until we reach a leaf
+        while not node.is_leaf():
+            feature_value = single_input[node.feature_index]
+            #check if the feature value is numerical or categorical
+            #if it is numerical we compare the value to the split value and go left if it is smaller than the node value 
+            #if it is categorical we go left if the value is equal to the node value
+            if (isinstance(feature_value, Number) and feature_value < node.split_value) or \
+               (not isinstance(feature_value, Number) and feature_value == node.split_value): 
+                node = node.left_child
+            #otherwise we go to the right child of the node 
+            else:
+                node = node.right_child
+                
+        #return the probabilities of the leaf
+        return node.value
+    
+    def predict_proba(self, X):
+        """Return the predictions for the dataset X"""
+        if not self.soft_voting:
+            raise TypeError("The tree does not use soft voting")
+        return [self.predict_proba_single_input(single_input) for single_input in X]
+    #endregion

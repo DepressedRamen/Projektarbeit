@@ -1,9 +1,10 @@
 from DecisionTrees.DecisionTree import DecisionTree #import the DecisionTree class
 from Node import Node #import the Node class
-import numbers
+from numbers import Number
 import numpy 
 
 class RegressionTree(DecisionTree): #inherit from the DecisionTree class
+    #region Implement Abstract Methods
     def _contrstuct_tree(self, X, y, depth=0):
         """Construct the tree recursively"""
         
@@ -49,7 +50,7 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
             X_column = X[:,feature_index]
             
             #Feature is numerical and has more than unique values than the specified amount of intervals
-            if isinstance(X_column[0], numbers.Number) and len(numpy.unique(X_column)) > self.intervals:
+            if isinstance(X_column[0], Number) and len(numpy.unique(X_column)) > self.intervals:
                 #determine the minimum and maximum value of the current feature
                 min_value = min(X_column)
                 max_value = max(X_column)
@@ -80,6 +81,26 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         
         return left_indices, right_indices, best_split_value, best_feature_index
     
+    def predict_single_input(self, single_input):
+        """Return the prediction for a single input"""
+        node = self.root
+        #traverse tree until we reach a leaf
+        while not node.is_leaf():
+            feature_value = single_input[node.feature_index]
+            #check if the feature value is numerical or categorical
+            #if it is numerical we compare the value to the split value and go left if it is smaller than the node value 
+            #if it is categorical we go left if the value is equal to the node value
+            if (isinstance(feature_value, Number) and feature_value < node.split_value) or \
+               (not isinstance(feature_value, Number) and feature_value == node.split_value): 
+                node = node.left_child
+            #otherwise we go to the right child of the node 
+            else:
+                node = node.right_child
+        #return the value of the leaf as a prediction
+        return node.value
+    #endregion
+    
+    #region Private Methods
     def _mean_squared_error(self, X_column, y, split_value):
         """Return the mean squared error of a split"""
         #determine the indices of the left and right child
@@ -107,3 +128,4 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         #calculate the mean squared error of the split and return it 
         mean_squared_error = numpy.mean(mse_concatenated)
         return mean_squared_error
+    #endregion

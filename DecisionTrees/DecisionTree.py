@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from numbers import Number
 import random
 from math import sqrt, trunc
 #Decision Tree with all necessary functions for a decision tree 
@@ -23,30 +22,14 @@ class DecisionTree(ABC):
     def _split(self, X, y):
         """Return the best split of a dataset"""
         pass
-    #endregion
-
-
-    #region Public Methods
+    
+    @abstractmethod
     def predict_single_input(self, single_input):
-
         """Return the prediction for a single input"""
-        node = self.root
-        #traverse tree until we reach a leaf
-        while not node.is_leaf():
-            feature_value = single_input[node.feature_index]
-            #check if the feature value is numerical or categorical
-            #if it is numerical we compare the value to the split value and go left if it is smaller than the node value 
-            #if it is categorical we go left if the value is equal to the node value
-            if (isinstance(feature_value, Number) and feature_value < node.split_value) or \
-               (not isinstance(feature_value, Number) and feature_value == node.split_value): 
-                node = node.left_child
-            #otherwise we go to the right child of the node 
-            else:
-                node = node.right_child
-        #return the value of the leaf as a prediction
-        return node.value
+        pass
+    #endregion
         
-
+    #region Public Methods
     def predict(self, X):
         """Return the predictions for the dataset X"""
         return [self.predict_single_input(single_input) for single_input in X]

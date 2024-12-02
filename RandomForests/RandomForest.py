@@ -5,7 +5,7 @@ class RandomForest(ABC):
     def __init__(self, trees_amount=100, bootstrap_size = 100,  max_depth=13, intervals=5, min_samples_split=20):
         """Constructor of the random forest"""
         self.trees_amount = trees_amount #number of trees in the forest
-        self.bootstrap_size = bootstrap_size #size of the bootstrap samples
+        self.bootstrap_size = bootstrap_size #size of the bootstrap sample in percent
         self.max_depth = max_depth #maximum depth of the trees
         self.intervals = intervals #number of intervals for numerical features
         self.min_samples_split = min_samples_split #minimum number of samples for a leaf node
@@ -27,7 +27,8 @@ class RandomForest(ABC):
     def _create_bootstrap_sample(self, X, y):
         """Create a bootstrap sample"""
         #create a list of random indices with replacement
-        indices = [random.randint(0, len(X)-1) for _ in range(self.bootstrap_size)]
+        sample_size = round(len(y)*(float(self.bootstrap_size)/100.0))
+        indices = [random.randint(0, len(y)-1) for _ in range(sample_size)]
         #return the bootstrap sample
         return X[indices], y[indices]
     #endregion
