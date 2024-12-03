@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 class RandomForest(ABC):
     def __init__(self, trees_amount=100, bootstrap_size = 100,  max_depth=13, intervals=5, min_samples_split=20):
         """Constructor of the random forest"""
+        if trees_amount < 1:
+            raise ValueError("The number of trees must be at least 1")
         self.trees_amount = trees_amount #number of trees in the forest
         self.bootstrap_size = bootstrap_size #size of the bootstrap sample in percent
         self.max_depth = max_depth #maximum depth of the trees
