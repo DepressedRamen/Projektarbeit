@@ -1,11 +1,18 @@
 from GBT.GradientBoostingTrees import GradientBoostingTrees
 from DecisionTrees.RegressionTree import RegressionTree
-from numpy import zeros
+import numpy 
 
 class GBTRegressor(GradientBoostingTrees): 
+    def __init__(self,  trees_amount=100, learning_rate=0.1,  max_depth=13, intervals=5, min_samples_split=2):
+        super().__init__(trees_amount, learning_rate, max_depth, intervals, min_samples_split)
+        self.initial_prediction = None #initial prediction of the model
+    
     #region implement abstract methods
     def fit(self, X, y):
-        #TODO: implement a contraint for the tree amounts
+        #initialize the prediction with the mean of the target values
+        self.initial_prediction = numpy.mean(y)
+        
+        
         #create the first regression tree and fit it to the data
         tree = RegressionTree(max_depth=self.max_depth, intervals=self.intervals, min_samples_split=self.min_samples_split)
         tree.fit(X, y)
@@ -24,8 +31,9 @@ class GBTRegressor(GradientBoostingTrees):
             # fit the tree to the residual error
             tree.fit(X, residual_error) 
             
-            #predict the target values and update the prediction 
-            y_pred += self.learning_rate * tree.predict(X)
+            #predict the target values and update the prediction
+            tree_prediction =  numpy.multiply(tree.predict(X), self.learning_rate)
+            y_pred += tree_prediction
             
             #store the new tree in the list of trees
             self.trees.append(tree)
@@ -33,11 +41,12 @@ class GBTRegressor(GradientBoostingTrees):
     def predict(self, X):
         """Return the predictions for the dataset X"""
         #initialize the prediction with zeros
-        y_prediction = zeros(X.shape[0])
+        y_prediction = numpy.full(X.shape[0], self.initial_prediction)
         
         #sum up the predictions of all trees
         for tree in self.trees:
-            y_prediction += self.learning_rate * tree.predict(X) 
+            tree_prediction = numpy.multiply(tree.predict(X), self.learning_rate)
+            y_prediction += tree_prediction 
             
         return y_prediction
     #endregion 
