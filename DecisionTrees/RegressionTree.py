@@ -1,37 +1,48 @@
 from DecisionTrees.DecisionTree import DecisionTree #import the DecisionTree class
 from Node import Node #import the Node class
-import numbers
+from numbers import Number
 import numpy 
 
+
 class RegressionTree(DecisionTree): #inherit from the DecisionTree class
+    #region Implement Abstract Methods
     def _contrstuct_tree(self, X, y, depth=0):
         """Construct the tree recursively"""
+        #calculate the cost complexity pruning value of the node
+        n = len(y)
+        node_value = numpy.mean(y)
+        #multiply the rss of the node with the number of samples and store it in the ccp_node attribute
+        #multiplication with the samples is done to later determine the sample weighted purity of the node/subtree
+        ccp_node = n * numpy.sum((y - node_value)**2)
         
         #check if the current node is a leaf node
         #by determing if the maximum depth is reached or the minimum amount of samples is reached
         if (depth == self.max_depth) or (len(y) <= self.min_samples_split):
             #return a leaf node with the average of the labels as value
             if len(y) == 0:
-                return Node(value = 0)
+                return Node(value = 0, ccp_node=ccp_node, n=n)
             else:
                 average = numpy.mean(y)
-                return Node(value = average)
+                return Node(value = average, ccp_node=ccp_node, n=n)
         #by determining if the node is pure  
         if numpy.allclose(y, y[0]):
             #return the leaf node by taking the first label as value as the dataset is pure
-            return Node(value = y[0])
+            return Node(value = y[0], ccp_node=ccp_node, n=n)
+        
+        #determine the features that are used for the split
+        feature_indeces = self._feature_sample(X.shape[1])
         
         #split the dataset
-        left_indices, right_indices, split_value, feature_index = self._split(X, y)
+        left_indices, right_indices, split_value, feature_index = self._split(X, y, feature_indeces)
         
         #create left and right child
         left_child = self._contrstuct_tree(X[left_indices], y[left_indices], depth + 1)
         right_child = self._contrstuct_tree(X[right_indices], y[right_indices], depth + 1)
         
         #create the current node
-        return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index)
+        return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index, ccp_node=ccp_node, value=node_value, n=n)
     
-    def _split(self, X, y): 
+    def _split(self, X, y, feature_indices): 
         """Return the best split of a dataset"""
         #initialize variables for the best split
         best_mean_squared_error = None
@@ -39,14 +50,14 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         best_feature_index = None
         
         #iterate over all features 
-        for feature_index in range(X.shape[1]):
+        for feature_index in feature_indices:
             #initialize a list to store the information gains of the current feature
             mean_squared_errors = []
             #get all values of the current feature
             X_column = X[:,feature_index]
             
             #Feature is numerical and has more than unique values than the specified amount of intervals
-            if isinstance(X_column[0], numbers.Number) and len(numpy.unique(X_column)) > self.intervals:
+            if isinstance(X_column[0], Number) and len(numpy.unique(X_column)) > self.intervals:
                 #determine the minimum and maximum value of the current feature
                 min_value = min(X_column)
                 max_value = max(X_column)
@@ -77,6 +88,26 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         
         return left_indices, right_indices, best_split_value, best_feature_index
     
+    def predict_single_input(self, single_input):
+        """Return the prediction for a single input"""
+        node = self.root
+        #traverse tree until we reach a leaf
+        while not node.is_leaf():
+            feature_value = single_input[node.feature_index]
+            #check if the feature value is numerical or categorical
+            #if it is numerical we compare the value to the split value and go left if it is smaller than the node value 
+            #if it is categorical we go left if the value is equal to the node value
+            if (isinstance(feature_value, Number) and feature_value < node.split_value) or \
+               (not isinstance(feature_value, Number) and feature_value == node.split_value): 
+                node = node.left_child
+            #otherwise we go to the right child of the node 
+            else:
+                node = node.right_child
+        #return the value of the leaf as a prediction
+        return node.value 
+    #endregion
+    
+    #region Private Methods
     def _mean_squared_error(self, X_column, y, split_value):
         """Return the mean squared error of a split"""
         #determine the indices of the left and right child
@@ -104,6 +135,7 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         #calculate the mean squared error of the split and return it 
         mean_squared_error = numpy.mean(mse_concatenated)
         return mean_squared_error
+
     
     def _traverse(self, node, single_input, node_id = 0):
         '''Recursively traverse the tree to calculate the node id of a leaf'''
@@ -128,3 +160,4 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
             region_indices[i] = self._traverse(self.root, single_input) 
             
         return region_indices
+#endregion
