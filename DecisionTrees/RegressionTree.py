@@ -144,8 +144,8 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         
         feature_value = single_input[node.feature_index]
         
-        if (isinstance(feature_value, numbers.Number) and feature_value < node.split_value) or \
-               (not isinstance(feature_value, numbers.Number) and feature_value == node.split_value):
+        if (isinstance(feature_value, Number) and feature_value < node.split_value) or \
+               (not isinstance(feature_value, Number) and feature_value == node.split_value):
             return self._traverse(node.left_child, single_input, node_id * 2 + 1)
         else:
             return self._traverse(node.right_child, single_input, node_id * 2 + 2)
