@@ -3,24 +3,31 @@ from Node import Node #import the Node class
 from numbers import Number
 import numpy 
 
+
 class RegressionTree(DecisionTree): #inherit from the DecisionTree class
     #region Implement Abstract Methods
     def _contrstuct_tree(self, X, y, depth=0):
         """Construct the tree recursively"""
+        #calculate the cost complexity pruning value of the node
+        n = len(y)
+        node_value = numpy.mean(y)
+        #multiply the rss of the node with the number of samples and store it in the ccp_node attribute
+        #multiplication with the samples is done to later determine the sample weighted purity of the node/subtree
+        ccp_node = n * numpy.sum((y - node_value)**2)
         
         #check if the current node is a leaf node
         #by determing if the maximum depth is reached or the minimum amount of samples is reached
         if (depth == self.max_depth) or (len(y) <= self.min_samples_split):
             #return a leaf node with the average of the labels as value
             if len(y) == 0:
-                return Node(value = 0)
+                return Node(value = 0, ccp_node=ccp_node, n=n)
             else:
                 average = numpy.mean(y)
-                return Node(value = average)
+                return Node(value = average, ccp_node=ccp_node, n=n)
         #by determining if the node is pure  
         if numpy.allclose(y, y[0]):
             #return the leaf node by taking the first label as value as the dataset is pure
-            return Node(value = y[0])
+            return Node(value = y[0], ccp_node=ccp_node, n=n)
         
         #determine the features that are used for the split
         feature_indeces = self._feature_sample(X.shape[1])
@@ -33,7 +40,7 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         right_child = self._contrstuct_tree(X[right_indices], y[right_indices], depth + 1)
         
         #create the current node
-        return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index)
+        return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index, ccp_node=ccp_node, value=node_value, n=n)
     
     def _split(self, X, y, feature_indices): 
         """Return the best split of a dataset"""
@@ -97,7 +104,7 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
             else:
                 node = node.right_child
         #return the value of the leaf as a prediction
-        return node.value
+        return node.value 
     #endregion
     
     #region Private Methods
