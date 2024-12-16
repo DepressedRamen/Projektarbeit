@@ -40,8 +40,9 @@ class GBTRegressor(GradientBoostingTrees):
             
     def predict(self, X):
         """Return the predictions for the dataset X"""
-        #initialize the prediction with zeros
-        y_prediction = numpy.full(X.shape[0], self.initial_prediction)
+        #initialize the prediction with the prediction of the first tree
+        y_prediction = self.trees[0].predict(X)
+        self.trees.pop(0)
         
         #sum up the predictions of all trees
         for tree in self.trees:
