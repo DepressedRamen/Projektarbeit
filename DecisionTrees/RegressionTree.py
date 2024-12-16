@@ -135,4 +135,29 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         #calculate the mean squared error of the split and return it 
         mean_squared_error = numpy.mean(mse_concatenated)
         return mean_squared_error
-    #endregion
+
+    
+    def _traverse(self, node, single_input, node_id = 0):
+        '''Recursively traverse the tree to calculate the node id of a leaf'''
+        if node.is_leaf(): 
+            return node_id
+        
+        feature_value = single_input[node.feature_index]
+        
+        if (isinstance(feature_value, numbers.Number) and feature_value < node.split_value) or \
+               (not isinstance(feature_value, numbers.Number) and feature_value == node.split_value):
+            return self._traverse(node.left_child, single_input, node_id * 2 + 1)
+        else:
+            return self._traverse(node.right_child, single_input, node_id * 2 + 2)
+    
+    def get_regions(self, X): 
+        '''Retrieves the id's of the terminal regions of the tree'''
+        
+        region_indices = numpy.zeros(X.shape[0], dtype=int)
+        
+        
+        for i, single_input in enumerate(X): 
+            region_indices[i] = self._traverse(self.root, single_input) 
+            
+        return region_indices
+#endregion
