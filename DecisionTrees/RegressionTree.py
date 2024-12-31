@@ -113,13 +113,16 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         #determine the indices of the left and right child
         left_indices, right_indices = self._determine_indecies(X_column, split_value)
         
+        len_left = len(left_indices)
+        len_right = len(right_indices)
+        
+         #check if the left or right child is empty
+        if len_left == 0 or len_right == 0:
+            return float('inf')
+        
         #determine the labels of the left and right child
         y_left = y[left_indices]
         y_right = y[right_indices]
-        
-        #check if the left or right child is empty
-        if len(y_left) == 0 or len(y_right) == 0:
-            return float('inf')
         
         #calculate the mean of the labels of the left and right child
         mean_left = numpy.mean(y_left)
@@ -129,11 +132,10 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         mse_left = numpy.array((y_left - mean_left)**2)
         mse_right = numpy.array((y_right - mean_right)**2)
 
-        #concatenate the residuals of the left and right child
-        mse_concatenated = numpy.concatenate((mse_left, mse_right))
+        #calculate the mean squared error of the split weighted by the number of samples
+        len_total = len_left + len_right
+        mean_squared_error = (len_left/len_total) * numpy.sum(mse_left) + (len_right/len_total) * numpy.sum(mse_right)
         
-        #calculate the mean squared error of the split and return it 
-        mean_squared_error = numpy.mean(mse_concatenated)
         return mean_squared_error
 
     

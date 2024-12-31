@@ -75,12 +75,12 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
                 split_values = numpy.unique(X_column)
             for value in split_values: 
                 #calculate the information gain of the current split
-                information_gains.append(self._information_gain(X_column, y,  value))
+                information_gains.append(self._sample_weighted_entropy(X_column, y,  value))
                 
             #determine the best split for the current feature
-            best_gain_for_feature = max(information_gains)
+            best_gain_for_feature = min(information_gains)
             #check if the current feature is the best split so far
-            if best_information_gain is None or best_gain_for_feature > best_information_gain:
+            if best_information_gain is None or best_gain_for_feature < best_information_gain:
                 #update the best split
                 best_information_gain = best_gain_for_feature
                 best_split_value = split_values[information_gains.index(best_gain_for_feature)]
@@ -118,20 +118,21 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
             return node.value
     
     #region Private Methods
-    def _information_gain(self, X_column, y, split_value):
-        """Return the information gain of a split"""
-        parent_entropy = self._entropy(y)
+    def _sample_weighted_entropy(self, X_column, y, split_value):
+        """Return the sample weighted entropy of a split"""
         
         #split the dataset into two parts according to the split value 
         left_indices, right_indices = self._determine_indecies(X_column, split_value)
         
-        #check if the split is valid
-        if len(left_indices) <1 or len(right_indices) <1:
-            return float('-inf')
-        
         #determine amount of datapoints of the left and right child as well as the combined amount of datapoints
         left_datapoints_amount = len(left_indices)
         right_datapoints_amount = len(right_indices)
+        
+        #check if the split is valid
+        if left_datapoints_amount <1 or right_datapoints_amount <1:
+            return float('inf')
+        
+        #determine the amount of total datapoints
         total_datapoints = left_datapoints_amount + right_datapoints_amount
         
         #calculate the entropy of the left and right child
@@ -142,7 +143,7 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
         children_entropy = (left_datapoints_amount / total_datapoints) * left_child_entropy + (right_datapoints_amount / total_datapoints) * right_child_entropy
         
         #return the information gain
-        return parent_entropy - children_entropy
+        return children_entropy
             
     def _entropy(self, y):
         """Return the entropy of a dataset"""
