@@ -44,23 +44,29 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
         right_child = self._contrstuct_tree(X[right_indices], y[right_indices], depth + 1, id*2+2)
         
         #create the current node
-        return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index, ccp_node=ccp_node, value=most_common_label, n=n)
+        return Node(left_child=left_child, 
+                    right_child=right_child, 
+                    split_value=split_value, 
+                    feature_index=feature_index, 
+                    ccp_node=ccp_node, 
+                    value=most_common_label, 
+                    n=n)
     
     def _split(self, X, y, feature_indices): 
         """Return the best split of a dataset"""
         #initialize variables for the best split
-        best_information_gain = None
+        best_entropy = None
         best_split_value = None 
         best_feature_index = None
         
         #iterate over all features 
         for feature_index in feature_indices:
-            #initialize a list to store the information gains of the current feature
-            information_gains = []
+            #initialize a list to store the possible entropies of the current feature
+            entropies = []
             #get all values of the current feature
             X_column = X[:,feature_index]
             
-            #Feature is numerical and has more  unique values than the specified amount of intervals
+            #Feature is numerical and has more unique values than the specified amount of intervals
             if isinstance(X_column[0], Number) and len(numpy.unique(X_column)) > self.intervals:
                 #determine the minimum and maximum value of the current feature
                 min_value = min(X_column)
@@ -74,16 +80,16 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
                 #determine all possible split values for the current feature 
                 split_values = numpy.unique(X_column)
             for value in split_values: 
-                #calculate the information gain of the current split
-                information_gains.append(self._sample_weighted_entropy(X_column, y,  value))
+                #calculate the sample weighted entropy of the current split
+                entropies.append(self._sample_weighted_entropy(X_column, y,  value))
                 
             #determine the best split for the current feature
-            best_gain_for_feature = min(information_gains)
+            best_entropy_for_feature = min(entropies)
             #check if the current feature is the best split so far
-            if best_information_gain is None or best_gain_for_feature < best_information_gain:
+            if best_entropy is None or best_entropy_for_feature < best_entropy:
                 #update the best split
-                best_information_gain = best_gain_for_feature
-                best_split_value = split_values[information_gains.index(best_gain_for_feature)]
+                best_entropy = best_entropy_for_feature
+                best_split_value = split_values[entropies.index(best_entropy_for_feature)]
                 best_feature_index = feature_index
         
         #split the dataset according to the best split
@@ -142,7 +148,7 @@ class ClassificationTree(DecisionTree): #inherit from the DecisionTree class
         #calculate the total entropy of the children
         children_entropy = (left_datapoints_amount / total_datapoints) * left_child_entropy + (right_datapoints_amount / total_datapoints) * right_child_entropy
         
-        #return the information gain
+        #return the sample weighted entropy
         return children_entropy
             
     def _entropy(self, y):

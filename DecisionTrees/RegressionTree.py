@@ -40,7 +40,13 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         right_child = self._contrstuct_tree(X[right_indices], y[right_indices], depth + 1)
         
         #create the current node
-        return Node(left_child=left_child, right_child=right_child, split_value=split_value, feature_index=feature_index, ccp_node=ccp_node, value=node_value, n=n)
+        return Node(left_child=left_child, 
+                    right_child=right_child, 
+                    split_value=split_value, 
+                    feature_index=feature_index, 
+                    ccp_node=ccp_node, 
+                    value=node_value, 
+                    n=n)
     
     def _split(self, X, y, feature_indices): 
         """Return the best split of a dataset"""

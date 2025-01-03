@@ -3,10 +3,17 @@ from abc import ABC, abstractmethod
 class GradientBoostingTrees(ABC):
     def __init__(self,  trees_amount=100, learning_rate=0.1,  max_depth=13, intervals=5, min_samples_split=2):
         """Constructor of the random forest"""
+        #check the input parameters
         if trees_amount < 1:
             raise ValueError("The number of trees must be at least 1")
         if learning_rate <= 0:
             raise ValueError("The learning rate must be greater than 0")
+        if max_depth < 1:
+            raise ValueError("The maximum depth must be at least 1")
+        if intervals < 1:
+            raise ValueError("The number of intervals must be at least 1")
+        if min_samples_split < 1:
+            raise ValueError("The minimum number of samples for a leaf node must be at least 1")
         self.learning_rate = learning_rate #learning rate of the model
         self.trees_amount = trees_amount #number of trees in the forest
         self.max_depth = max_depth #maximum depth of the trees

@@ -7,6 +7,15 @@ from copy import deepcopy
 class DecisionTree(ABC):
     def __init__(self, root=None, max_depth=13, intervals=5, min_samples_split=20, random_feature_sampling=False, prune_alpha=0.0):
         """Constructor of the decision tree"""
+        #check the input parameters
+        if max_depth < 1:
+            raise ValueError("The maximum depth must be at least 1")
+        if intervals < 1:
+            raise ValueError("The number of intervals must be at least 1")
+        if min_samples_split < 1:
+            raise ValueError("The minimum number of samples for a leaf node must be at least 1")
+        if prune_alpha < 0:
+            raise ValueError("The alpha value for pruning must be at least 0")
         self.root = root #root node of the tree
         self.max_depth = max_depth #maximum depth of the tree 
         self.intervals = intervals #number of intervals for numerical features
