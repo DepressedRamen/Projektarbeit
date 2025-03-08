@@ -1,33 +1,46 @@
-from DecisionTrees.DecisionTree import DecisionTree #import the DecisionTree class
-from Node import Node #import the Node class
+from DecisionTrees.DecisionTree import DecisionTree 
+from Node import Node
 from numbers import Number
 import numpy 
-
+#Class for regression problems using decision trees
 
 class RegressionTree(DecisionTree): #inherit from the DecisionTree class
-    #region Implement Abstract Methods
-    def _contrstuct_tree(self, X, y, depth=0):
-        """Construct the tree recursively"""
+    #region Abstract Methods
+    def _contstruct_tree(self, X, y, depth=0):
+        """
+        Construct the regression tree recursively.
+        
+        Parameters
+        ----------
+            X (numpy.ndarray) : The input features of the dataset.
+            y (numpy.ndarray) : The target values of the dataset.
+            depth (int) : The current depth of the tree (default is 0).
+        
+        Returns
+        -------
+            Node (node) : The constructed node of the regression tree.
+        """
+
         #calculate the cost complexity pruning value of the node
-        n = len(y)
+        samples_amount = len(y)
         node_value = numpy.mean(y)
         #multiply the rss of the node with the number of samples and store it in the ccp_node attribute
         #multiplication with the samples is done to later determine the sample weighted purity of the node/subtree
-        ccp_node = n * numpy.sum((y - node_value)**2)
+        ccp_node = samples_amount * numpy.sum((y - node_value)**2)
         
         #check if the current node is a leaf node
         #by determing if the maximum depth is reached or the minimum amount of samples is reached
         if (depth == self.max_depth) or (len(y) <= self.min_samples_split):
             #return a leaf node with the average of the labels as value
             if len(y) == 0:
-                return Node(value = 0, ccp_node=ccp_node, n=n)
+                return Node(value = 0, ccp_node=ccp_node, samples_amount=samples_amount)
             else:
                 average = numpy.mean(y)
-                return Node(value = average, ccp_node=ccp_node, n=n)
+                return Node(value = average, ccp_node=ccp_node, samples_amount=samples_amount)
         #by determining if the node is pure  
         if numpy.allclose(y, y[0]):
             #return the leaf node by taking the first label as value as the dataset is pure
-            return Node(value = y[0], ccp_node=ccp_node, n=n)
+            return Node(value = y[0], ccp_node=ccp_node, samples_amount=samples_amount)
         
         #determine the features that are used for the split
         feature_indeces = self._feature_sample(X.shape[1])
@@ -35,9 +48,13 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         #split the dataset
         left_indices, right_indices, split_value, feature_index = self._split(X, y, feature_indeces)
         
+        #check if the best split is valid
+        if left_indices is None or right_indices is None: 
+            return Node(value = node_value, ccp_node=ccp_node, samples_amount=samples_amount)
+        
         #create left and right child
-        left_child = self._contrstuct_tree(X[left_indices], y[left_indices], depth + 1)
-        right_child = self._contrstuct_tree(X[right_indices], y[right_indices], depth + 1)
+        left_child = self._contstruct_tree(X[left_indices], y[left_indices], depth + 1)
+        right_child = self._contstruct_tree(X[right_indices], y[right_indices], depth + 1)
         
         #create the current node
         return Node(left_child=left_child, 
@@ -46,56 +63,82 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
                     feature_index=feature_index, 
                     ccp_node=ccp_node, 
                     value=node_value, 
-                    n=n)
-    
+                    samples_amount=samples_amount)
+        
     def _split(self, X, y, feature_indices): 
-        """Return the best split of a dataset"""
-        #initialize variables for the best split
-        best_mean_squared_error = None
-        best_split_value = None 
+        """
+        Return the best split of a dataset using prefix sums for optimization.
+        
+        Parameters
+        ----------
+            X (numpy.ndarray) : The feature matrix of shape.
+            y (numpy.ndarray) : The target values of shape.
+            feature_indices (list) : List of feature indices to consider for splitting.
+        
+        Returns
+        -------
+            best_split (tuple) : A tuple containing:
+                - left_indices (numpy.ndarray): Indices of the samples in the left split.
+                - right_indices (numpy.ndarray): Indices of the samples in the right split.
+                - best_split_value (float): The value of the best split.
+                - best_feature_index (int): The index of the feature used for the best split.
+        """
+
+        #initialize the best mean squared error, the best split value and the best feature index
+        best_mean_squared_error = float('inf')
+        best_split_value = None
         best_feature_index = None
         
         #iterate over all features 
         for feature_index in feature_indices:
-            #initialize a list to store the information gains of the current feature
-            mean_squared_errors = []
             #get all values of the current feature
-            X_column = X[:,feature_index]
+            X_column = X[:, feature_index]
+            #sort the datapoints by the current feature
+            sorted_indices = numpy.argsort(X_column)
+            X_column = X_column[sorted_indices]
+            y_sorted = y[sorted_indices]
             
-            #Feature is numerical and has more than unique values than the specified amount of intervals
-            if isinstance(X_column[0], Number) and len(numpy.unique(X_column)) > self.intervals:
-                #determine the minimum and maximum value of the current feature
-                min_value = min(X_column)
-                max_value = max(X_column)
-                
-                #determine the split values for the current feature
-                split_values = numpy.linspace(min_value, max_value, self.intervals+1) #determine the split values including the minimum and maximum
-                split_values = split_values[1:-1] #remove the minimum and maximum from the split_values   
-            else: 
-                """Feature is categorical or has less unique numerical values than the specified amount of intervals"""
-                #determine all possible split values for the current feature 
-                split_values = numpy.unique(X_column)
-                
-            for value in split_values: 
-                #calculate the information gain of the current split
-                mean_squared_errors.append(self._mean_squared_error(X_column, y,  value))
-                
-            #determine the best split for the current feature
-            best_mse_for_feature = min(mean_squared_errors)
-            if best_mean_squared_error is None or best_mse_for_feature < best_mean_squared_error:
-                #check if the current feature is the best split so far
-                best_mean_squared_error = best_mse_for_feature
-                best_split_value = split_values[mean_squared_errors.index(best_mse_for_feature)]
-                best_feature_index = feature_index
+            #calculate prefix sums for y and y^2
+            prefix_sum_y = numpy.cumsum(y_sorted)
+            prefix_sum_y2 = numpy.cumsum(y_sorted ** 2)
+            
+           
+            num_splits = len(numpy.unique(X_column)) - 1
+            if self.intervals is None or num_splits <= self.intervals or not isinstance(X_column[0], Number):
+                split_indices = range(1, len(X_column))
+            else:
+                split_indices = numpy.linspace(1, len(X_column) - 1, self.intervals, dtype=int)
+
+            #iterate over all possible split points to find the best split for the current feature
+            new_split_value, new_feature_index, new_mse = self._calculate_best_split(y, best_mean_squared_error, feature_index, X_column, prefix_sum_y, prefix_sum_y2, split_indices)
+            if new_split_value is not None:
+                best_split_value = new_split_value
+                best_feature_index = new_feature_index
+                best_mean_squared_error = new_mse     
         
         #split the dataset according to the best split
-        X_column_best_feature = X[:,best_feature_index]
-        left_indices, right_indices = self._determine_indecies(X_column_best_feature, best_split_value)
+        if best_split_value is None:
+            return None, None, None, None
+        X_column_best_feature = X[:, best_feature_index]
+        left_indices = numpy.where(X_column_best_feature < best_split_value)[0]
+        right_indices = numpy.where(X_column_best_feature >= best_split_value)[0]
         
         return left_indices, right_indices, best_split_value, best_feature_index
     
     def predict_single_input(self, single_input):
-        """Return the prediction for a single input"""
+        """
+        Predict the output for a single input using the regression tree.
+
+        Parameters
+        ----------
+            single_input (list): The input features for which the prediction is to be made.
+
+        Returns
+        -------
+            prediction (float) : The predicted value for the given input.
+
+        """
+
         node = self.root
         #traverse tree until we reach a leaf
         while not node.is_leaf():
@@ -112,60 +155,116 @@ class RegressionTree(DecisionTree): #inherit from the DecisionTree class
         #return the value of the leaf as a prediction
         return node.value 
     #endregion
-    
-    #region Private Methods
-    def _mean_squared_error(self, X_column, y, split_value):
-        """Return the mean squared error of a split"""
-        #determine the indices of the left and right child
-        left_indices, right_indices = self._determine_indecies(X_column, split_value)
-        
-        len_left = len(left_indices)
-        len_right = len(right_indices)
-        
-         #check if the left or right child is empty
-        if len_left == 0 or len_right == 0:
-            return float('inf')
-        
-        #determine the labels of the left and right child
-        y_left = y[left_indices]
-        y_right = y[right_indices]
-        
-        #calculate the mean of the labels of the left and right child
-        mean_left = numpy.mean(y_left)
-        mean_right = numpy.mean(y_right)
 
-        #calculate the residuals of the left and right child
-        mse_left = numpy.array((y_left - mean_left)**2)
-        mse_right = numpy.array((y_right - mean_right)**2)
-
-        #calculate the mean squared error of the split weighted by the number of samples
-        len_total = len_left + len_right
-        mean_squared_error = (len_left/len_total) * numpy.sum(mse_left) + (len_right/len_total) * numpy.sum(mse_right)
-        
-        return mean_squared_error
-
-    
+    #region Private Methods 
     def _traverse(self, node, single_input, node_id = 0):
-        '''Recursively traverse the tree to calculate the node id of a leaf'''
+        """
+        Recursively traverse the tree to calculate the node id of a leaf.
+        
+        Parameters
+        ----------
+            node (Node) : The current node in the tree.
+            single_input (list) : A single input data point.
+            node_id (int, optional) : The id of the current node. Defaults to 0.
+        
+        Returns
+        -------
+            node_id (int) : The node id of the leaf node where the input data point ends up.
+        """
+
+        #check if the current node is a leaf and return the node id if it is
         if node.is_leaf(): 
             return node_id
         
+        #get the value of the feature of the current node
         feature_value = single_input[node.feature_index]
         
         if (isinstance(feature_value, Number) and feature_value < node.split_value) or \
                (not isinstance(feature_value, Number) and feature_value == node.split_value):
+            #go to the left child if the feature value is smaller than the split value
             return self._traverse(node.left_child, single_input, node_id * 2 + 1)
         else:
+            #go to the right child if the feature value is greater or equal to the split value
             return self._traverse(node.right_child, single_input, node_id * 2 + 2)
+        
+    def _calculate_best_split(self, y, best_mean_squared_error, feature_index, X_column, prefix_sum_y, prefix_sum_y2, split_indices):
+        """
+        Calculate the best split for a given feature in a regression tree.
+        Parameters
+        ----------
+            y (array-like) : The target values.
+            best_mean_squared_error (float) : The current best mean squared error.
+            feature_index (int) : The index of the feature being evaluated.
+            X_column (array-like) : The values of the feature being evaluated.
+            prefix_sum_y (array-like) : The prefix sum of the target values.
+            prefix_sum_y2 (array-like) : The prefix sum of the squared target values.
+            split_indices (array-like) : The indices at which to evaluate potential splits.
+        
+        Returns
+        -------
+            best_split (tuple) : A tuple containing the best split value, the best feature index and the best mse.
+        """
+        #initialize the best split values
+        best_split_value = None 
+        best_feature_index = None
+        
+        for i in split_indices:
+            if X_column[i] == X_column[i - 1]:
+                continue
+
+            #retrieve all necessary values for the mse calculation
+            left_count = i
+            right_count = len(y) - i
+                
+            left_sum_y = prefix_sum_y[i - 1]
+            right_sum_y = prefix_sum_y[-1] - left_sum_y
+                
+            left_sum_y2 = prefix_sum_y2[i - 1]
+            right_sum_y2 = prefix_sum_y2[-1] - left_sum_y2
+                
+            left_mean_y = left_sum_y / left_count
+            right_mean_y = right_sum_y / right_count
+                
+            #calculate the mean squared error of the split
+            left_mse = left_sum_y2 - 2 * left_mean_y * left_sum_y + left_count * (left_mean_y ** 2)
+            right_mse = right_sum_y2 - 2 * right_mean_y * right_sum_y + right_count * (right_mean_y ** 2)
+                
+            total_mse = (left_mse + right_mse) / len(y)
+                
+            #update the best split if the current split is better
+            if total_mse < best_mean_squared_error:
+                best_mean_squared_error = total_mse
+                if isinstance(X_column[0], Number):
+                    best_split_value = (X_column[i] + X_column[i - 1]) / 2
+                else:
+                    best_split_value = X_column[i]
+                best_feature_index = feature_index
+                
+        return best_split_value, best_feature_index, best_mean_squared_error
+    #endregion
     
+    #region Public Methods
     def get_regions(self, X): 
+        """
+        Retrieves the IDs of the terminal regions of the tree for each input sample.
+        
+        Parameters
+        ----------
+            X (numpy.ndarray) : The input data for which to retrieve the terminal region IDs. 
+
+        Returns
+        -------
+            ids (numpy.ndarray) : An array of integers where each element is the ID of the terminal region 
+                        corresponding to the respective input sample.
+        """
         '''Retrieves the id's of the terminal regions of the tree'''
         
+        #initialize the array to store the region indices
         region_indices = numpy.zeros(X.shape[0], dtype=int)
         
-        
+        #traverse the tree for each input
         for i, single_input in enumerate(X): 
             region_indices[i] = self._traverse(self.root, single_input) 
             
         return region_indices
-#endregion
+    #endregion

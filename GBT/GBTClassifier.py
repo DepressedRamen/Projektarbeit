@@ -2,17 +2,42 @@ from GBT.GradientBoostingTrees import GradientBoostingTrees
 from DecisionTrees.RegressionTree import RegressionTree
 import numpy 
 from scipy.special import softmax
+#Class for classfication problems using Gradient Boosting Trees
 
 class GBTClassifier(GradientBoostingTrees): 
-    def __init__(self, trees_amount=100, learning_rate=0.1,  max_depth=13, intervals=5, min_samples_split=20):
-        """Constructor of the GBTClassifier"""
-        super().__init__(trees_amount, learning_rate, max_depth, intervals, min_samples_split)
+    def __init__(self, trees_amount=100, learning_rate=0.1,  max_depth=13, intervals=256, min_samples_split=20, prune_alpha=0.0):
+        """
+        Constructor of the GBTClassifier.
+
+        Parameters
+        ----------
+            trees_amount (int) : The number of trees in the ensemble. Default is 100.
+            learning_rate (float) : The learning rate shrinks the contribution of each tree. Default is 0.1.
+            max_depth (int) : The maximum depth of the individual regression estimators. Default is 13.
+            intervals (int) : The number of intervals for discretizing continuous features. Default is 256.
+            min_samples_split (int) : The minimum number of samples required to split an internal node. Default is 20.
+            prune_alpha (float) : Complexity parameter used for Minimal Cost-Complexity Pruning. Default is 0.0.
+        """
+        
+        super().__init__(trees_amount, learning_rate, max_depth, intervals, min_samples_split, prune_alpha)
         self.classes_amount = None #amount of unique labels
     
-    #region implement abstract methods
+    #region Abstract methods
     def fit(self, X, y):
-        '''Fit the model to the data X and the target values y with the help of the softmax function'''
+        """
+        Fit the model to the data X and the target values y with the help of the softmax function.
+        
+        Parameters
+        ----------
+        X (array-like) : The input samples.
+        y (array-like) : The target values.
+        """
+        
         #initialize epsilon used in the calculation of the gamma values to avoid division by zero
+        # Call the fit method of the parent class
+        X, y = self._validate_data(X, y)
+        
+        
         epsilon = 1e-15
         
         #determine the amount of unique labels
@@ -36,7 +61,7 @@ class GBTClassifier(GradientBoostingTrees):
             
             for label in range(self.classes_amount): 
                 #create a new classification tree
-                tree = RegressionTree(max_depth=self.max_depth, intervals=self.intervals, min_samples_split=self.min_samples_split)
+                tree = RegressionTree(max_depth=self.max_depth, intervals=self.intervals, min_samples_split=self.min_samples_split, prune_alpha=self.prune_alpha)
                 # fit the tree to the residual error
                 #fit the tree to the residuals of the current label
                 tree.fit(X, residuals[:, label])
@@ -65,8 +90,20 @@ class GBTClassifier(GradientBoostingTrees):
                     self.logits[regions==region, label] += self.learning_rate * gamma_value 
                 
     def predict(self, X):
-        """Return the predictions for the dataset X"""
+        """
+        Predict the class labels for the input dataset X.
+        
+        Parameters
+        ----------
+        X (array-like) : The input samples.
+        
+        Returns
+        -------
+        predictions (array-like) : The predicted class labels for each input sample.
+        """
+
         #initialize the logits with zeros
+        X = self._validate_data(X)
         logits = numpy.zeros((X.shape[0], self.classes_amount))
         
         #sum up the predictions of all trees
@@ -78,8 +115,21 @@ class GBTClassifier(GradientBoostingTrees):
         return numpy.argmax(softmax(logits, axis=1), axis=1)
     #endregion 
     
+    #region Private Methods
     def _one_hot_encoding(self, y):
+        """
+        Perform one-hot encoding of the labels.
+
+        Parameters
+        ----------
+        y (array-like) : Array of labels to be one-hot encoded.
+
+        Returns
+        -------
+        y_one_hot (numpy.ndarray) : A 2D array where each row corresponds to a one-hot encoded label.
+        """
         """One hot encoding of the labels"""
         y_one_hot = numpy.zeros((len(y), self.classes_amount))
         y_one_hot[numpy.arange(len(y)), y] = 1
         return y_one_hot
+    #endregion
